@@ -28,10 +28,6 @@ namespace Antoine {
             
             Animator.SetFloat(moveXHash, moveX);
             Animator.SetFloat(moveYHash, moveY);
-
-            if (Input.GetKeyDown(KeyCode.Space)) {
-                Animator.Play("Attack03");
-            }
         }
         
         protected override bool OnIsServerAuthoritative() {

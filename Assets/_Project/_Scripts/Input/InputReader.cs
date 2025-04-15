@@ -1,5 +1,5 @@
+using System;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 namespace Antoine {
@@ -9,8 +9,9 @@ namespace Antoine {
         
         public Vector2 Move => inputActions.Player.Move.ReadValue<Vector2>();
 
-        public event UnityAction OnSprintStart = delegate { };
-        public event UnityAction OnSprintEnd = delegate { };
+        public event Action OnSprintStart = delegate { };
+        public event Action OnSprintEnd = delegate { };
+        public event Action OnAttackEvent = delegate { };
 
         void OnEnable() {
             if (inputActions == null) {
@@ -33,8 +34,11 @@ namespace Antoine {
         public void OnLook(InputAction.CallbackContext context)
         { }
 
-        public void OnAttack(InputAction.CallbackContext context)
-        { }
+        public void OnAttack(InputAction.CallbackContext context) {
+            if (!context.performed) return;
+            
+            OnAttackEvent.Invoke();
+        }
 
         public void OnInteract(InputAction.CallbackContext context) 
         { }

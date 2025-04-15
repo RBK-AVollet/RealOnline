@@ -33,15 +33,17 @@ namespace Antoine {
             cinemachineBrain.enabled = IsOwner;
             audioListener.enabled = IsOwner;
             
+            var lobbyCam = Camera.main;
+            if (lobbyCam != null) {
+                lobbyCam.gameObject.SetActive(false);
+            }
+            
             if (!IsOwner) return;
 
             rb = GetComponent<Rigidbody>();
-            cam = Camera.main;
             
             input.OnSprintStart += OnSprintStart;
             input.OnSprintEnd += OnSprintEnd;
-            
-            input.EnablePlayerInputs();
         }
 
         public override void OnNetworkDespawn() {
