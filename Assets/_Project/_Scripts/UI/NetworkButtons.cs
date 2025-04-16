@@ -1,11 +1,13 @@
 using DG.Tweening;
+using Antoine.Systems.Timers;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Antoine
 {
-    public class NetworkButtons : MonoBehaviour {
+    public class NetworkButtons : NetworkBehaviour {
         [Header("Settings")] 
         [SerializeField] float btnSpawnDuration = 0.4f;
         [SerializeField] float btnSpawnDelay = 0.15f;
@@ -24,8 +26,10 @@ namespace Antoine
         [SerializeField] Button isReadyBtn;
         [SerializeField] Sprite notReadySprite;
         [SerializeField] Sprite readySprite;
+        [SerializeField] TextMeshProUGUI[] usernameTextes;
         RectTransform networkRect, createRect, joinRect, leaveRect;
-
+        CountdownTimer readyTimerCooldown;
+        
         SessionManager sessionManager;
         UsernameConfig usernameConfig;
         
@@ -62,6 +66,8 @@ namespace Antoine
             joinCodeEnabled = false;
             isReady = false;
             
+            readyTimerCooldown = new CountdownTimer(1f);
+            
             EnableLeaveButton(false);
         }
 
@@ -92,9 +98,35 @@ namespace Antoine
             
             isReady = false;
             isReadyBtn.image.sprite = notReadySprite;
-            isReadyBtn.gameObject.SetActive(true); 
+            isReadyBtn.interactable = true;
+            isReadyBtn.gameObject.SetActive(true);
             isReadyBtn.onClick.AddListener(ToggleReady);
-            Debug.Log("Registered");
+            
+            // Show all players already in the lobby
+            UpdatePlayerNames();
+            sessionManager.ActiveSession.PlayerPropertiesChanged += UpdatePlayerNames;
+        }
+
+        void UpdatePlayerNames() {
+            const string k_usernamePropertyKey = "username";
+            const string k_isReadyPropertyKey = "isReady";
+            
+            if(sessionManager.ActiveSession == null) return;
+            
+            for (int i = 0; i < sessionManager.ActiveSession.Players.Count; i++) {
+                var plr = sessionManager.ActiveSession.Players[i];
+                if (plr == null) continue;
+                
+                plr.Properties.TryGetValue(k_usernamePropertyKey, out var usernameProperty);
+                plr.Properties.TryGetValue(k_isReadyPropertyKey, out var isReadyProperty);
+                
+                if (usernameProperty == null || isReadyProperty == null) continue;
+                
+                string username = usernameProperty.Value;
+                bool ready = bool.Parse(isReadyProperty.Value);
+                
+                usernameTextes[i].SetText(username);
+            }
         }
 
         void OnSessionLeft() {
@@ -103,9 +135,8 @@ namespace Antoine
             EnableLeaveButton(false);
             
             joinCodeText.gameObject.SetActive(false);
-            
-            isReadyBtn.onClick.RemoveListener(ToggleReady);
             isReadyBtn.gameObject.SetActive(false);
+            isReadyBtn.interactable = false;
         }
 
         void StartHost() {
@@ -232,10 +263,12 @@ namespace Antoine
         }
         
         void ToggleReady() {
-            Debug.Log("CLicked");
+            if(readyTimerCooldown.IsRunning) return;
+            
             isReady ^= true;
             isReadyBtn.image.sprite = isReady ? readySprite : notReadySprite;
             sessionManager.SetPlayerReady(isReady).Forget();
+            readyTimerCooldown.Start();
         }
     }
 }
