@@ -1,6 +1,5 @@
 using DG.Tweening;
 using TMPro;
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,15 +8,14 @@ namespace Antoine
     public class NetworkButtons : MonoBehaviour {
         [Header("Settings")] 
         [SerializeField] float btnSpawnDuration = 0.4f;
-        [SerializeField] float joinCodeDuration = 0.2f;
         [SerializeField] float btnSpawnDelay = 0.15f;
+        [SerializeField] float joinCodeDuration = 0.2f;
         
         [Header("References")]
         [SerializeField] Button networkBtn;
         [SerializeField] Button createBtn;
         [SerializeField] Button joinBtn;
         [SerializeField] Button leaveBtn;
-        [SerializeField] Button readyBtn;
         [SerializeField] RectTransform joinCodeRect;
         [SerializeField] TMP_InputField joinCodeIF;
         [SerializeField] Button joinCodeButton;
@@ -92,10 +90,11 @@ namespace Antoine
             joinCodeText.SetText($"Lobby Code: {sessionManager.ActiveSession.Code}");
             joinCodeText.gameObject.SetActive(true);
             
-            // isReady = false;
-            // readyBtn.image.sprite = notReadySprite;
-            // readyBtn.gameObject.SetActive(true); 
-            // readyBtn.onClick.AddListener(ToggleReady);
+            isReady = false;
+            isReadyBtn.image.sprite = notReadySprite;
+            isReadyBtn.gameObject.SetActive(true); 
+            isReadyBtn.onClick.AddListener(ToggleReady);
+            Debug.Log("Registered");
         }
 
         void OnSessionLeft() {
@@ -105,8 +104,8 @@ namespace Antoine
             
             joinCodeText.gameObject.SetActive(false);
             
-            readyBtn.onClick.RemoveListener(ToggleReady);
-            readyBtn.gameObject.SetActive(false);
+            isReadyBtn.onClick.RemoveListener(ToggleReady);
+            isReadyBtn.gameObject.SetActive(false);
         }
 
         void StartHost() {
@@ -124,12 +123,16 @@ namespace Antoine
             HideJoinCode();
         }
 
-        Tween ButtonScaleTween(RectTransform btnRect, Vector3 targetScale) {
-            return btnRect.DOScale(targetScale, btnSpawnDuration).SetEase(Ease.OutBack).SetUpdate(true);
+        Tween ButtonScaleTween(RectTransform btnRect, Vector3 targetScale, bool enabled) {
+            return btnRect.DOScale(targetScale, btnSpawnDuration)
+                .SetEase(enabled ? Ease.OutBack : Ease.InBack)
+                .SetUpdate(true);
         }
 
-        Tween ButtonMoveTween(RectTransform btnRect, Vector3 targetPos) {
-            return btnRect.DOAnchorPos(targetPos, btnSpawnDuration).SetEase(Ease.OutSine).SetUpdate(true);
+        Tween ButtonMoveTween(RectTransform btnRect, Vector3 targetPos, bool enabled) {
+            return btnRect.DOAnchorPos(targetPos, btnSpawnDuration)
+                .SetEase(enabled ? Ease.OutQuint : Ease.InQuint)
+                .SetUpdate(true);
         }
         
         void ToggleNetworkButtons() {
@@ -145,25 +148,22 @@ namespace Antoine
             networkButtonsSequence = DOTween.Sequence();
 
             if (networkButtonsEnabled) {
-                networkButtonsSequence.Append(ButtonMoveTween(createRect, networkButtonsEnabled ? createStartPos : networkRect.anchoredPosition))
-                    .Join(ButtonScaleTween(createRect, networkButtonsEnabled ? Vector3.one : Vector3.zero))
-                    .AppendInterval(btnSpawnDelay)
-                    .Append(ButtonMoveTween(joinRect, networkButtonsEnabled ? joinStartPos : networkRect.anchoredPosition))
-                    .Join(ButtonScaleTween(joinRect, networkButtonsEnabled ? Vector3.one : Vector3.zero))
-                    .AppendInterval(btnSpawnDelay)
-                    .Append(ButtonMoveTween(leaveRect, networkButtonsEnabled ? leaveStartPos : networkRect.anchoredPosition))
-                    .Join(ButtonScaleTween(leaveRect, networkButtonsEnabled ? Vector3.one : Vector3.zero));
+                networkButtonsSequence
+                    .Insert(0f, ButtonMoveTween(createRect, networkButtonsEnabled ? createStartPos : networkRect.anchoredPosition, true))
+                    .Join(ButtonScaleTween(createRect, networkButtonsEnabled ? Vector3.one : Vector3.zero, true))
+                    .Insert(btnSpawnDelay, ButtonMoveTween(joinRect, networkButtonsEnabled ? joinStartPos : networkRect.anchoredPosition, true))
+                    .Join(ButtonScaleTween(joinRect, networkButtonsEnabled ? Vector3.one : Vector3.zero, true))
+                    .Insert(btnSpawnDelay * 2, ButtonMoveTween(leaveRect, networkButtonsEnabled ? leaveStartPos : networkRect.anchoredPosition, true))
+                    .Join(ButtonScaleTween(leaveRect, networkButtonsEnabled ? Vector3.one : Vector3.zero, true));
             }
             else {
                 networkButtonsSequence
-                    .Append(ButtonMoveTween(leaveRect, networkButtonsEnabled ? leaveStartPos : networkRect.anchoredPosition))
-                    .Join(ButtonScaleTween(leaveRect, networkButtonsEnabled ? Vector3.one : Vector3.zero))
-                    .AppendInterval(btnSpawnDelay)
-                    .Append(ButtonMoveTween(joinRect, networkButtonsEnabled ? joinStartPos : networkRect.anchoredPosition))
-                    .Join(ButtonScaleTween(joinRect, networkButtonsEnabled ? Vector3.one : Vector3.zero))
-                    .AppendInterval(btnSpawnDelay)
-                    .Append(ButtonMoveTween(createRect, networkButtonsEnabled ? createStartPos : networkRect.anchoredPosition))
-                    .Join(ButtonScaleTween(createRect, networkButtonsEnabled ? Vector3.one : Vector3.zero));
+                    .Insert(0f, ButtonMoveTween(leaveRect, networkButtonsEnabled ? leaveStartPos : networkRect.anchoredPosition, false))
+                    .Join(ButtonScaleTween(leaveRect, networkButtonsEnabled ? Vector3.one : Vector3.zero, false))
+                    .Insert(btnSpawnDelay, ButtonMoveTween(joinRect, networkButtonsEnabled ? joinStartPos : networkRect.anchoredPosition, false))
+                    .Join(ButtonScaleTween(joinRect, networkButtonsEnabled ? Vector3.one : Vector3.zero, false))
+                    .Insert(btnSpawnDelay * 2, ButtonMoveTween(createRect, networkButtonsEnabled ? createStartPos : networkRect.anchoredPosition, false))
+                    .Join(ButtonScaleTween(createRect, networkButtonsEnabled ? Vector3.one : Vector3.zero, false));
             }
 
             if (networkButtonsEnabled) {
@@ -232,8 +232,9 @@ namespace Antoine
         }
         
         void ToggleReady() {
+            Debug.Log("CLicked");
             isReady ^= true;
-            readyBtn.image.sprite = isReady ? readySprite : notReadySprite;
+            isReadyBtn.image.sprite = isReady ? readySprite : notReadySprite;
             sessionManager.SetPlayerReady(isReady).Forget();
         }
     }

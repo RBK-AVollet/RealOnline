@@ -460,14 +460,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a9b55c699f097478784a7b07b42549, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  btnSpawnDuration: 0.12
+  btnSpawnDuration: 0.25
+  btnSpawnDelay: 0.2
   joinCodeDuration: 0.15
-  btnSpawnDelay: 0.06
   networkBtn: {fileID: 20037458}
   createBtn: {fileID: 1279727089}
   joinBtn: {fileID: 2096510997}
   leaveBtn: {fileID: 2027277534}
-  readyBtn: {fileID: 0}
   joinCodeRect: {fileID: 1038378491}
   joinCodeIF: {fileID: 1874620274}
   joinCodeButton: {fileID: 13785454}
@@ -1175,7 +1174,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 89}
-  m_SizeDelta: {x: 192, y: 192}
+  m_SizeDelta: {x: 128, y: 128}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &824363221
 MonoBehaviour:
@@ -2593,7 +2592,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -87.5789, y: -87.5789}
+  m_SizeDelta: {x: -50.7311, y: -50.7311}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1857824783
 MonoBehaviour:
