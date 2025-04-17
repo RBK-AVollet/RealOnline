@@ -1,4 +1,3 @@
-using System.Linq;
 using DG.Tweening;
 using Antoine.Systems.Timers;
 using TMPro;
@@ -29,10 +28,16 @@ namespace Antoine
         [SerializeField] Sprite notReadySprite;
         [SerializeField] Sprite readySprite;
         [SerializeField] TextMeshProUGUI[] usernameTextes;
+        [SerializeField] TextMeshProUGUI screenDisplayText;
+        [SerializeField] CanvasGroup screenDisplayCanvasGroup;
+        [SerializeField] Image coverPlayerView;
+        [SerializeField] TextMeshProUGUI countdownText;
         RectTransform networkRect, createRect, joinRect, leaveRect;
+        CanvasGroup canvasGroup;
         CountdownTimer readyTimerCooldown;
         
         SessionManager sessionManager;
+        NetworkGameManager networkGameManager;
         UsernameConfig usernameConfig;
         
         Vector3 createStartPos;
@@ -41,11 +46,15 @@ namespace Antoine
         bool networkButtonsEnabled;
         bool joinCodeEnabled;
         bool isReady;
+        bool displayCountdown;
         
         Sequence networkButtonsSequence;
         Sequence joinCodeSequence;
+        Sequence screenDisplaySequence;
+        Tween lobbyFadeOutTween, coverPlayerViewTween;
         
         void Awake() {
+            canvasGroup = GetComponent<CanvasGroup>();
             networkRect = networkBtn.GetComponent<RectTransform>();
             createRect = createBtn.GetComponent<RectTransform>();
             joinRect = joinBtn.GetComponent<RectTransform>();
@@ -67,6 +76,7 @@ namespace Antoine
             networkButtonsEnabled = false;
             joinCodeEnabled = false;
             isReady = false;
+            displayCountdown = false;
             
             readyTimerCooldown = new CountdownTimer(1f);
             
@@ -84,9 +94,17 @@ namespace Antoine
         void Start() {
             sessionManager = SessionManager.Instance;
             usernameConfig = UsernameConfig.Instance;
+            networkGameManager = NetworkGameManager.Instance;
 
             sessionManager.OnSessionJoined += OnSessionJoined;
             sessionManager.OnSessionLeft += OnSessionLeft;
+        }
+
+        void Update() {
+            if (!displayCountdown) return;
+
+            int gameCountdown = Mathf.FloorToInt(networkGameManager.gameCountdown.Value);
+            countdownText.SetText(gameCountdown.ToString());
         }
 
         void OnSessionJoined() {
@@ -155,20 +173,32 @@ namespace Antoine
                 startGameBtn.gameObject.SetActive(false);
                 startGameBtn.onClick.RemoveListener(StartGame);
             }
-
-
         }
 
         void StartGame() {
             if(!NetworkManager.Singleton.IsHost) return;
+
+            startGameBtn.gameObject.SetActive(false);
+            startGameBtn.onClick.RemoveListener(StartGame);
+            HideLobbyUI();
             
+            NetworkGameManager.Instance.StartGame();
+        }
+
+        public void HideLobbyUI() {
             joinCodeText.gameObject.SetActive(false);
             isReadyBtn.gameObject.SetActive(false);
             isReadyBtn.interactable = false;
-            startGameBtn.gameObject.SetActive(false);
-            startGameBtn.onClick.RemoveListener(StartGame);
-            
-            Debug.Log("HOST STARTED GAME !");
+
+            lobbyFadeOutTween = canvasGroup.DOFade(0f, 0.4f).SetEase(Ease.Linear).OnComplete(EraseUsernames);
+
+            sessionManager.SetPlayerReady(false).Forget();
+        }
+
+        void EraseUsernames() {
+            foreach (var username in usernameTextes) {
+                username.SetText("");
+            }
         }
 
         void OnSessionLeft() {
@@ -311,7 +341,6 @@ namespace Antoine
 
         void Leave() {
             sessionManager.LeaveSession().Forget();
-            Debug.Log("Left");
         }
         
         void ToggleReady() {
@@ -321,6 +350,40 @@ namespace Antoine
             isReadyBtn.image.sprite = isReady ? readySprite : notReadySprite;
             sessionManager.SetPlayerReady(isReady).Forget();
             readyTimerCooldown.Start();
+        }
+
+        public void DisplaySeekerOnScreen(string username) => DisplayOnScreen($"SEEKER:\n{username}", Color.red);
+
+        public void DisplayOnScreen(string text, Color color) {
+            if (screenDisplaySequence != null) {
+                screenDisplaySequence.Kill();
+                screenDisplaySequence = null;
+            }
+            
+            screenDisplayCanvasGroup.alpha = 0f;
+            
+            screenDisplayText.SetText(text);
+            screenDisplayText.color = color;
+
+            screenDisplaySequence = DOTween.Sequence()
+                .Append(screenDisplayCanvasGroup.DOFade(1f, 1f).SetEase(Ease.InQuad))
+                .AppendInterval(5f)
+                .Append(screenDisplayCanvasGroup.DOFade(0f, 0.5f).SetEase(Ease.OutQuad));
+        }
+
+        public void HidePlayerView(bool enabled) {
+            if (coverPlayerViewTween != null) {
+                coverPlayerViewTween.Kill();
+                coverPlayerViewTween = null;
+            }
+            
+            coverPlayerViewTween = coverPlayerView.DOFade(enabled ? 1f : 0f, 1f)
+                .SetEase(enabled ? Ease.OutQuad : Ease.InQuad);
+        }
+
+        public void EnableCountdownDisplayRpc(bool enabled) {
+            displayCountdown = enabled;
+            countdownText.gameObject.SetActive(enabled);
         }
     }
 }

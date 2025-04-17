@@ -46,6 +46,13 @@ namespace Antoine {
             input.OnSprintEnd += OnSprintEnd;
         }
 
+        public void InitializeCharacter() {
+            if (!IsOwner) return;
+            
+            cinemachineCamera.Priority.Value = 100;
+            input.EnablePlayerInputs();
+        }
+
         public override void OnNetworkDespawn() {
             if (!IsOwner) return;
             input.OnSprintStart -= OnSprintStart;
