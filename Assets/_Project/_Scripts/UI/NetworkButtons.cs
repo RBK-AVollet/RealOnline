@@ -1,3 +1,4 @@
+using System.Linq;
 using DG.Tweening;
 using Antoine.Systems.Timers;
 using TMPro;
@@ -7,7 +8,7 @@ using UnityEngine.UI;
 
 namespace Antoine
 {
-    public class NetworkButtons : NetworkBehaviour {
+    public class NetworkButtons : MonoBehaviour {
         [Header("Settings")] 
         [SerializeField] float btnSpawnDuration = 0.4f;
         [SerializeField] float btnSpawnDelay = 0.15f;
@@ -24,6 +25,7 @@ namespace Antoine
         [Space]
         [SerializeField] TMP_Text joinCodeText;
         [SerializeField] Button isReadyBtn;
+        [SerializeField] Button startGameBtn;
         [SerializeField] Sprite notReadySprite;
         [SerializeField] Sprite readySprite;
         [SerializeField] TextMeshProUGUI[] usernameTextes;
@@ -104,14 +106,26 @@ namespace Antoine
             
             // Show all players already in the lobby
             UpdatePlayerNames();
+            sessionManager.ActiveSession.PlayerJoined += OnPlayerJoined;
+            sessionManager.ActiveSession.PlayerLeft += OnPlayerLeft;
             sessionManager.ActiveSession.PlayerPropertiesChanged += UpdatePlayerNames;
         }
 
+        void OnPlayerJoined(string clientId) {
+            UpdatePlayerNames();
+        }
+
+        void OnPlayerLeft(string clientId) {
+            UpdatePlayerNames();
+        }
+        
         void UpdatePlayerNames() {
             const string k_usernamePropertyKey = "username";
             const string k_isReadyPropertyKey = "isReady";
             
             if(sessionManager.ActiveSession == null) return;
+
+            bool allReady = true;
             
             for (int i = 0; i < sessionManager.ActiveSession.Players.Count; i++) {
                 var plr = sessionManager.ActiveSession.Players[i];
@@ -124,9 +138,37 @@ namespace Antoine
                 
                 string username = usernameProperty.Value;
                 bool ready = bool.Parse(isReadyProperty.Value);
+
+                if (!ready) allReady = false;
                 
                 usernameTextes[i].SetText(username);
+                usernameTextes[i].color = ready ? Color.green : Color.white;
             }
+
+            // All players are ready, show the button only for the host to start the game
+            if (sessionManager.ActiveSession.PlayerCount >= 2
+                && NetworkManager.Singleton.IsHost
+                && allReady) {
+                startGameBtn.gameObject.SetActive(true);
+                startGameBtn.onClick.AddListener(StartGame);
+            } else {
+                startGameBtn.gameObject.SetActive(false);
+                startGameBtn.onClick.RemoveListener(StartGame);
+            }
+
+
+        }
+
+        void StartGame() {
+            if(!NetworkManager.Singleton.IsHost) return;
+            
+            joinCodeText.gameObject.SetActive(false);
+            isReadyBtn.gameObject.SetActive(false);
+            isReadyBtn.interactable = false;
+            startGameBtn.gameObject.SetActive(false);
+            startGameBtn.onClick.RemoveListener(StartGame);
+            
+            Debug.Log("HOST STARTED GAME !");
         }
 
         void OnSessionLeft() {
@@ -260,6 +302,16 @@ namespace Antoine
         void EnableLeaveButton(bool enabled) {
             leaveBtn.image.color = enabled ? Color.white : Color.gray;
             leaveBtn.interactable = enabled;
+            
+            if(enabled)
+                leaveBtn.onClick.AddListener(Leave);
+            else
+                leaveBtn.onClick.RemoveListener(Leave);
+        }
+
+        void Leave() {
+            sessionManager.LeaveSession().Forget();
+            Debug.Log("Left");
         }
         
         void ToggleReady() {
