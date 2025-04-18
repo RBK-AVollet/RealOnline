@@ -1,3 +1,4 @@
+using Antoine.Systems.Timers;
 using Unity.Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,6 +10,7 @@ namespace Antoine {
         [SerializeField] float sprintMultiplier = 2f;
         [SerializeField] float rotationSpeed = 10f;
         [SerializeField] float rotateThreshold = 0.8f;
+        [SerializeField] float diveCooldown = 1f;
         
         [Header("Dependencies")]
         [SerializeField] InputReader input;
@@ -16,6 +18,10 @@ namespace Antoine {
         [SerializeField] CinemachineBrain cinemachineBrain;
         [SerializeField] CinemachineCamera cinemachineCamera;
         [SerializeField] AudioListener audioListener;
+        NetworkPlayerAnimator playerAnimator;
+        CountdownTimer diveTimer;
+        bool inGround;
+        bool isSeeker;
         Rigidbody rb;
         
         Vector2 moveInput;
@@ -41,14 +47,19 @@ namespace Antoine {
             if (!IsOwner) return;
 
             rb = GetComponent<Rigidbody>();
+            playerAnimator = GetComponent<NetworkPlayerAnimator>();
+
+            diveTimer = new CountdownTimer(diveCooldown);
             
             input.OnSprintStart += OnSprintStart;
             input.OnSprintEnd += OnSprintEnd;
+            input.OnDiveEvent += OnDive;
         }
 
-        public void InitializeCharacter() {
+        public void InitializeCharacter(bool isSeeker) {
             if (!IsOwner) return;
             
+            this.isSeeker = isSeeker;
             cinemachineCamera.Priority.Value = 100;
             input.EnablePlayerInputs();
         }
@@ -61,6 +72,7 @@ namespace Antoine {
 
         void FixedUpdate() {
             if (!IsOwner) return;
+            if (inGround) return;
             
             moveInput = input.Move;
             Vector3 forward = cam.transform.forward;
@@ -101,6 +113,22 @@ namespace Antoine {
         
         void OnSprintEnd() {
             IsSprinting = false;
+        }
+        
+        void OnDive() {
+            if (!IsOwner) return;
+            if (isSeeker) return;
+            if (diveTimer.IsRunning) return;
+            
+            inGround ^= true;
+            
+            if (inGround) {
+                playerAnimator.PlayDive();
+            } else {
+                playerAnimator.PlayDiveBack();
+            }
+            
+            diveTimer.Start();
         }
     }
 }

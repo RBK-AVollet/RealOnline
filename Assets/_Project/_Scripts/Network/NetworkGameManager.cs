@@ -47,7 +47,7 @@ namespace Antoine {
                     continue;
                 }
 
-                EnableCharacterRpc(RpcTarget.Single(player.ClientId, RpcTargetUse.Temp));
+                EnableCharacterRpc(false, RpcTarget.Single(player.ClientId, RpcTargetUse.Temp));
             }
             
             gameStarted = true;
@@ -58,7 +58,7 @@ namespace Antoine {
             HideSeekerViewRpc(false, RpcTarget.Single(seekerId, RpcTargetUse.Temp));
             
             // Release seeker player
-            EnableCharacterRpc(RpcTarget.Single(seekerId, RpcTargetUse.Temp));
+            EnableCharacterRpc(true, RpcTarget.Single(seekerId, RpcTargetUse.Temp));
             
         }
 
@@ -126,14 +126,14 @@ namespace Antoine {
         }
         
         [Rpc(SendTo.SpecifiedInParams)]
-        void EnableCharacterRpc(RpcParams rpcParams) {
+        void EnableCharacterRpc(bool isSeeker, RpcParams rpcParams) {
             var playerCharacter = NetworkManager.Singleton.LocalClient.PlayerObject;
             if (playerCharacter == null) return;
 
             var playerBehaviour = playerCharacter.GetComponent<NetworkPlayer>();
             if (playerBehaviour == null) return;
 
-            playerBehaviour.InitializeCharacter();
+            playerBehaviour.InitializeCharacter(isSeeker);
         }
         
         [Rpc(SendTo.SpecifiedInParams)]

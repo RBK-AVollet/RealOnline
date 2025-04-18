@@ -380,11 +380,13 @@ MonoBehaviour:
   sprintMultiplier: 3
   rotationSpeed: 7
   rotateThreshold: 0.8
+  diveCooldown: 1
   input: {fileID: 11400000, guid: 3a56773850864a3449270833275a02b9, type: 2}
   cam: {fileID: 1526369938079900639}
   cinemachineBrain: {fileID: 4332660029532803850}
   cinemachineCamera: {fileID: 6191379172330467206}
   audioListener: {fileID: 2347817955629044045}
+  playerAnimator: {fileID: 7007827270394299221}
 --- !u!114 &7007827270394299221
 MonoBehaviour:
   m_ObjectHideFlags: 0

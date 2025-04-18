@@ -11,6 +11,7 @@ namespace Antoine {
 
         public event Action OnSprintStart = delegate { };
         public event Action OnSprintEnd = delegate { };
+        public event Action OnDiveEvent = delegate { };
         public event Action OnAttackEvent = delegate { };
 
         void OnEnable() {
@@ -46,8 +47,11 @@ namespace Antoine {
         public void OnCrouch(InputAction.CallbackContext context) 
         { }
 
-        public void OnJump(InputAction.CallbackContext context) 
-        { }
+        public void OnJump(InputAction.CallbackContext context) {
+            if (!context.performed) return;
+            
+            OnDiveEvent.Invoke();
+        }
 
         public void OnPrevious(InputAction.CallbackContext context)
         { }
